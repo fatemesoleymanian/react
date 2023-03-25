@@ -1,0 +1,73 @@
+'use client'
+
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import axios from "axios"
+import { useState } from "react"
+import { toast } from "react-hot-toast"
+import Toggle from "./Toggle"
+
+export type EditProps = {
+    title: string
+    id: string
+    avatar: string
+    name: string
+
+    comments?: {
+        id: string
+        postId: string
+        userId: string
+    }[]
+}
+export default function EditPosts({ avatar, name, title, comments, id }: EditProps) {
+
+    let deletedToastId: string;
+    const [toggle, setToggle] = useState(false);
+    const queryClient = useQueryClient()
+    const { mutate } = useMutation(
+        async (id: string) =>
+
+            await axios.delete('/api/posts/destroy', { data: id }), {
+        onError: (error) => {
+            toast.error("Error deleting the post!", { id: deletedToastId })
+
+        },
+        onSuccess: () => {
+            toast.success("Post has been deleted.", { id: deletedToastId });
+            queryClient.invalidateQueries(["auth-posts"])
+        }
+    }
+    )
+
+    const deletePost = () => {
+        deletedToastId = toast.loading("Deleting...", { id: deletedToastId })
+        mutate(id)
+    }
+
+    return (
+        <>
+            <div
+                className="bg-white my-8 p-8 rounded-lg">
+                <div className="flex items-center gap-2">
+                    <img src={avatar} alt={"avatar"} width={"32"} height={"32"}
+                        className="rounded-full" />
+                    <h3 className="font-bold text-gray-700">{name}</h3>
+                </div>
+                <div className="my-8">
+                    <p className="break-all">{title}</p>
+                </div>
+                <div className="flex items-center gap-4">
+                    <p className="text-sm font-bold text0-ray-700">
+                        {
+                            comments?.length
+                        }
+                    </p>
+                    <button onClick={(e) => setToggle(true)}
+                        className="text-sm font-bold text-red-500">
+                        Delete
+                    </button>
+                </div>
+            </div>
+            {toggle && <Toggle deletePost={deletePost} setToggle={setToggle} />}
+        </>
+    )
+}
